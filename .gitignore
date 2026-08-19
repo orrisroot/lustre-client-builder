@@ -1,4 +1,4 @@
-work/dist
+/dist/
 *.tgz
 *.tar.gz
 .nfs*
