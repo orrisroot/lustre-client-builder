@@ -207,6 +207,9 @@ run_build () {
         echo "         continuing with the image in the local storage." >&2
       else
         error "could not pull ${IMAGE}"
+        error "on an authentication error, check the registry credentials in"
+        error "~/.docker/config.json - podman uses them and does not fall back"
+        error "to an anonymous pull (docker logout, or podman login docker.io)"
         return 1
       fi
     fi
