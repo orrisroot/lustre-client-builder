@@ -61,6 +61,27 @@ lb_extract () {
   trap 'lb_cleanup $?' EXIT
 }
 
+# Directory mock writes its results and logs to.  The build logs stay there,
+# only the packages are copied next to the other results.
+lb_mock_resultdir () {
+  echo "${DEST_DIR}/log/mock-$1"
+}
+
+# Copy the packages mock produced up into DEST_DIR, keeping the logs in place.
+lb_collect_rpms () {
+  local dir
+  dir="$(lb_mock_resultdir "$1")"
+  cp "${dir}"/*.rpm "${DEST_DIR}/"
+  echo "==> ${1} packages : $(ls "${dir}"/*.rpm | wc -l) files, logs in ${dir}"
+}
+
+# Copy the packages built in a separate directory next to the other results.
+lb_collect_debs () {
+  local dir="$1"
+  cp "${dir}"/* "${DEST_DIR}/"
+  echo "==> deb packages : $(ls "${dir}" | wc -l) files"
+}
+
 lb_cleanup () {
   local status="${1:-0}"
   if [ "${status}" -eq 0 ]; then

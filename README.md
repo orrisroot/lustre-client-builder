@@ -46,6 +46,16 @@ docker is still supported as a fallback.
    `dist/<distribution>-<version>/<kernel-version>/`, the output of the run is
    kept in `dist/log/<target>-<timestamp>.log`.
 
+Both a kernel module package built against the kernel of the base image and a
+DKMS package that builds the modules on the target machine are produced:
+
+| | RHEL clones | Ubuntu |
+|---|---|---|
+| kernel module | `kmod-lustre-client` | `lustre-client-modules-<kver>` |
+| dkms | `lustre-client-dkms` | `lustre-client-modules-dkms` |
+| userspace | `lustre-client`, `lustre-client-devel`, ... | `lustre-client-utils`, `lustre-dev`, ... |
+| source package | `.src.rpm` | `.dsc` + `.tar.gz` + `.changes` |
+
 The tarball to build is taken from `build.conf`, and can be overridden per run:
 
 ```
@@ -56,6 +66,37 @@ LUSTRE_SOURCE=lustre-2.15.6.tar.gz ./build.sh alma-9
 The engine can be selected the same way, with `--engine` or the
 `CONTAINER_ENGINE` environment variable.
 
+## How the packages are built
+
+Both distribution families build in two stages, so that the binary packages
+come out of a minimal chroot rather than out of the container the sources were
+prepared in:
+
+1. the container unpacks the sources and builds the **source package** only
+   (`make srpm` / `make dkms-srpms`, `dpkg-buildpackage -S`)
+2. the source package is rebuilt into binary packages in a minimal chroot -
+   `mock` for the RHEL clones, a chroot created with `mmdebstrap` for Ubuntu -
+   where the build dependencies come from the package metadata instead of
+   being installed by hand
+
+The build logs of the second stage are kept next to the packages, in
+`dist/<distribution>/<kernel>/log/`.
+
+Two things cannot be expressed as build dependencies and are installed
+explicitly in the chroot:
+
+- the kernel of the base image (`kernel-devel-<version>` / `linux-headers-<version>`),
+  because the module package has to be built against exactly that kernel
+- on Ubuntu, the packages lustre needs but `debian/control` does not declare
+  (`flex`, `bison`, `swig`, `libpython3-dev`, `libnl-3-dev`, `libjson-c-dev`,
+  `libkrb5-dev`, `mpi-default-dev`, ...)
+
+Ubuntu does not use `sbuild` or `pbuilder` even though they are the usual
+counterpart of `mock`: lustre builds its kernel module package with
+module-assistant *after* `dpkg-buildpackage` (see the `debs` target of
+`autoMakefile.am`), which a `.dsc` driven builder cannot reproduce.  The
+upstream make targets are run inside the chroot instead.
+
 ## Layout
 
 ```
@@ -65,7 +106,7 @@ distros.conf          build targets: name, container image, script family
 container/            mounted read only on /opt/builder in the container
   common.sh           shared helpers (environment check, unpack, destination)
   el.sh               build for RHEL clones 8 / 9 / 10 (rpm, via mock)
-  ubuntu.sh           build for Ubuntu 22.04 / 24.04 (deb)
+  ubuntu.sh           build for Ubuntu 22.04 / 24.04 (deb, via mmdebstrap)
 src/                  lustre source tarballs, mounted read only on /src
 dist/                 build results, mounted read write on /dist
 ```
