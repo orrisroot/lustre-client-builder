@@ -15,7 +15,7 @@ case "${OS_MAJOR}" in
   *) dnf config-manager --enable crb ;;
 esac
 dnf group install -y "Development Tools"
-dnf install -y which kmod
+dnf install -y which kmod patch
 dnf install -y kernel-devel kernel-rpm-macros kernel-abi-stablelists
 dnf install -y krb5-devel keyutils-libs-devel openssl-devel libyaml-devel libmount-devel libnl3-devel json-c-devel --nobest
 dnf install -y swig libaio-devel readline-devel libuuid-devel python3-devel python3-setuptools openmpi-devel
@@ -25,6 +25,7 @@ module load mpi
 
 lb_prepare "$(rpm -qa kernel-devel | sed -e 's+kernel-devel-++')"
 lb_extract
+lb_apply_patches
 
 # --- source packages -----------------------------------------------------------
 # only the source packages are built here, the binaries are built by mock in a

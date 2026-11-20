@@ -10,6 +10,7 @@
 
 LB_SRC_DIR="${LB_SRC_DIR:-/src}"
 LB_DIST_DIR="${LB_DIST_DIR:-/dist}"
+LB_PATCH_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/patches"
 
 lb_die () {
   echo "Error: $*" >&2
@@ -59,6 +60,19 @@ lb_extract () {
   tar zxf "${LUSTRE_SOURCE_PATH}" -C "${DEST_DIR}"
   [ -d "${LUSTRE_BUILD_DIR}" ] || lb_die "unexpected tarball layout: ${LUSTRE_BUILD_DIR} not found"
   trap 'lb_cleanup $?' EXIT
+}
+
+# Apply source-specific compatibility patches in file name order.
+lb_apply_patches () {
+  local patch_dir="${LB_PATCH_ROOT}/$(basename "${LUSTRE_SOURCE}" .tar.gz)"
+  local patch_file
+
+  [ -d "${patch_dir}" ] || return 0
+  for patch_file in "${patch_dir}"/*.patch; do
+    [ -f "${patch_file}" ] || continue
+    echo "==> applying patch: $(basename "${patch_file}")"
+    patch -d "${LUSTRE_BUILD_DIR}" -p1 < "${patch_file}"
+  done
 }
 
 # Directory mock writes its results and logs to.  The build logs stay there,

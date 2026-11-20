@@ -82,6 +82,12 @@ prepared in:
 The build logs of the second stage are kept next to the packages, in
 `dist/<distribution>/<kernel>/log/`.
 
+For RHEL clones, source-specific compatibility patches can be placed in
+`container/patches/<source-name>/` (for example,
+`container/patches/lustre-2.15.8/fix.patch`).  Files ending in `.patch`
+are applied in file name order immediately after unpacking the source, so the
+fixes are included in the generated source RPM as well.
+
 Two things cannot be expressed as build dependencies and are installed
 explicitly in the chroot:
 

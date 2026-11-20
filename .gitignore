@@ -1,4 +1,5 @@
 /dist/
+/container/patches/
 *.tgz
 *.tar.gz
 .nfs*
